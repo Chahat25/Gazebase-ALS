@@ -1,0 +1,43 @@
+@startuml
+' Title and styling
+title **Pipeline for Gaze-Based Text Entry**
+skinparam monochrome false
+skinparam shadowing true
+skinparam defaultFontSize 14
+skinparam defaultFontName Arial
+skinparam activityBorderColor #000000
+skinparam activityBackgroundColor #FFFFFF
+skinparam arrowColor #555555
+
+' Define activities with labels and colors
+:GazeBase Dataset (1000 Hz)\n(x_left, y_left, x_right, y_right, pupil size, head pose) #FF9999; as gazebase
+:Preprocessing\nAverage x,y; Normalize [0.50-0.65, 0.44-0.50]; Remove NaNs, Clip Outliers #99FF99; as preprocess
+:Processed CSVs\n(data/processed) #FFFF99; as processedcsv
+:LSTM Training\n30-frame seq; LSTM (64 units) -> Dropout (0.2) -> Dense (32, ReLU) -> Dropout (0.2) -> Dense (2, linear); Predict Coordinates #99CCFF; as lstmtrain
+:Trained LSTM Model #CC99FF; as trainedlstm
+:Real-Time Gaze Tracking\nMediapipe FaceMesh Iris Detection (468, 473); Buffer 30 frames; Map to Canvas (600x400); Smooth over 60 frames #FFCC99; as gazetrack
+:Canvas Coordinates\n(screen_x, screen_y) #FF99CC; as canvascoords
+:Head Movement Calibration\nFour-point task: (50, 50), (550, 50), (50, 350), (550, 350); Scale Predictions #CCFFCC; as headcalib
+:Virtual Keyboard (Tkinter)\n6x5 Grid (A-Z, DEL); 1-second Dwell-Time Selection; Display Gaze Dot (Green Oval); Log to experiment_log.txt #99FFFF; as virtkeyboard
+:Gaze-Inputted Text #FFCCFF; as gazeinput
+:Sentence Autocompletion\nN-gram Model; Predict Top-3 Words (e.g., 'HE' -> 'HELLO', 'HELP', 'HERE'); Daily-Need Words (water, hello, bye, toilet, food) #CCCCFF; as autocomp
+:Final Text Output\nWord Textbox (e.g., 'hel' for 'hello') #FFCCCC; as finaloutput
+
+' Define the flow with arrows using labels
+gazebase --> preprocess
+preprocess --> processedcsv
+processedcsv --> lstmtrain
+lstmtrain --> trainedlstm
+trainedlstm --> gazetrack
+gazetrack --> canvascoords
+canvascoords --> headcalib
+headcalib --> gazetrack : Feedback Loop
+canvascoords --> virtkeyboard
+virtkeyboard --> gazeinput
+gazeinput --> autocomp
+autocomp --> finaloutput
+
+' Caption
+caption Diagram illustrating the workflow of the gaze-based text entry system, from data preprocessing to sentence autocompletion.
+
+@enduml
